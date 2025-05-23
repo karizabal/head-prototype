@@ -49,8 +49,8 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
   // 4) Global defs
   const defs = svg.append('defs');
   const grad = defs.append('radialGradient').attr('id','shade');
-  grad.append('stop').attr('offset','20%').attr('stop-color','#E1F5FE');
-  grad.append('stop').attr('offset','80%').attr('stop-color','#81D4FA');
+  grad.append('stop').attr('offset','20%').attr('stop-color','#FFF176');
+  grad.append('stop').attr('offset','80%').attr('stop-color','#FDD835');
 
   // 5) Head group
   const head = svg.append('g').attr('class','head');
