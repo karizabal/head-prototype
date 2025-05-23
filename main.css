@@ -1,3 +1,37 @@
 body {
     font: 100%/1.5 system-ui;
 }
+
+.ios-list {
+    width: 200px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    font-family: -apple-system, sans-serif;
+  }
+  
+  .ios-list .item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+  }
+  
+  .ios-list .item:last-child {
+    border-bottom: none;
+  }
+  
+  .ios-list .item.selected {
+    color: #1DB954;
+    font-weight: 600;
+  }
+  
+  .ios-list .item .icon {
+    font-size: 18px;
+  }
+  
