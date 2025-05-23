@@ -32,8 +32,8 @@ const sphereGeo = { type: 'Sphere' };
 // 4) Draw gradient sphere + “eyes” + graticule + red meridian
 const defs = svg.append('defs');
 const grad = defs.append('radialGradient').attr('id','shade');
-grad.append('stop').attr('offset','0%').attr('stop-color','#fff');
-grad.append('stop').attr('offset','100%').attr('stop-color','#aaa');
+grad.append('stop').attr('offset','20%').attr('stop-color','#E1F5FE');
+grad.append('stop').attr('offset','80%').attr('stop-color','#81D4FA');
 
 svg.append('path')
   .datum(sphereGeo)
@@ -55,22 +55,11 @@ svg.append('path')
   .attr('d', path);
 
 // red meridian at longitude 0°
-const meridian0 = {
-  type: "LineString",
-  coordinates: [[0,-90],[0,90]]
-};
-svg.append('path')
-  .datum(meridian0)
-  .attr('class','meridian0')
-  .attr('fill','none')
-  .attr('stroke','red')
-  .attr('stroke-width',2)
-  .attr('d', path);
   
-  const eyePts = [
-    { lon: -25, lat:  10 },
-    { lon:  25, lat:  10 }
-  ];
+const eyePts = [
+  { lon: -25, lat:  10 },
+  { lon:  25, lat:  10 }
+];
 
 const eyes = svg.selectAll('circle.eye')
   .data(eyePts)
@@ -117,7 +106,6 @@ function startAnim(genre) {
     // redraw everything
     svg.select('path.sphere').attr('d', path);
     svg.select('path.graticule').attr('d', path);
-    svg.select('path.meridian0').attr('d', path);
 
     eyes
       .attr('cx', d => projection([d.lon, d.lat])[0])
