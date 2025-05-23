@@ -10,7 +10,7 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
     genre:       d.genre
   }));
 
-  // 2) Genre picker UI
+  // 2) Genre picker UI (unchanged)
   const genres = Array.from(new Set(data.map(d => d.genre)));
   let current = null;
   const list = d3.select('#genre-list-ios');
@@ -34,14 +34,15 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
   }
   renderList();
 
-  // 3) SVG & projection
+  // 3) SVG + projection
   const W = 400, H = 400;
   const svg = d3.select('#vis').append('svg')
-      .attr('width', W).attr('height', H)
+      .attr('width', W)
+      .attr('height', H)
       .style('overflow','visible');
 
   const projection = d3.geoOrthographic()
-      .scale(110)
+      .scale(110)              // sphere size
       .translate([W/2, H/2])
       .clipAngle(90);
   const path = d3.geoPath(projection);
@@ -49,13 +50,18 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
   // 4) Global defs
   const defs = svg.append('defs');
   const grad = defs.append('radialGradient').attr('id','shade');
-  grad.append('stop').attr('offset','20%').attr('stop-color','#FFF176');
+  grad.append('stop').attr('offset','20%').attr('stop-color','#FFF9C4');
   grad.append('stop').attr('offset','80%').attr('stop-color','#FDD835');
 
-  // 5) Head group
-  const head = svg.append('g').attr('class','head');
+  // 5) Static oval transform group (squash Y to 80%)
+  const oval = svg.append('g')
+    .attr('class','oval')
+    .attr('transform','scale(0.9,0.95)');
 
-  // 6) Draw sphere + grid inside head
+  // 6) Head group inside oval (this one will be translated & scaled dynamically)
+  const head = oval.append('g').attr('class','head');
+
+  // 7) Draw the globe + grid inside head
   head.append('path')
     .datum({type:'Sphere'})
     .attr('class','sphere')
@@ -71,68 +77,68 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
     .attr('stroke-width',0.5)
     .attr('d', path);
 
-  // 7) Draw eyes once inside head
+  // 8) Draw eyes once inside head
   const eyePts = [{lon:-25,lat:10},{lon:25,lat:10}];
   head.selectAll('circle.eye')
     .data(eyePts)
     .join('circle')
       .attr('class','eye')
-      .attr('r', 15)
+      .attr('r',15)
       .attr('fill','#333')
-      .attr('cx', d => projection([d.lon,d.lat])[0])
-      .attr('cy', d => projection([d.lon,d.lat])[1]);
+      .attr('cx', d=>projection([d.lon,d.lat])[0])
+      .attr('cy', d=>projection([d.lon,d.lat])[1]);
 
-  // 8) Prepare per-genre & overall series (sorted)
-  const avg = { x: {}, y: {}, z: {} };
+  // 9) Compute per-genre & overall series
+  const avg = { x:{}, y:{}, z:{} };
   ['x_centered','y_centered','z_centered'].forEach(axis=>{
     const key = axis.split('_')[0]; // 'x','y','z'
     genres.forEach(g => {
       avg[key][g] = data
         .filter(d=>d.genre===g)
-        .map(d => ({ time:d.time_bin, avg:d[axis] }))
-        .sort((a,b) => a.time - b.time);
+        .map(d=>({time:d.time_bin,avg:d[axis]}))
+        .sort((a,b)=>a.time-b.time);
     });
     avg[key]['Overall'] = d3.rollups(
       data,
-      vs => d3.mean(vs, d=>d[axis]),
+      vs=>d3.mean(vs,d=>d[axis]),
       d=>d.time_bin
     )
     .map(([t,a])=>({time:t,avg:a}))
-    .sort((a,b) => a.time - b.time);
+    .sort((a,b)=>a.time-b.time);
   });
 
-  // 9) Smooth: X/Z ±2 bins, Y ±5 bins
-  function smooth(arr, w) {
-    const n = arr.length;
-    return arr.map((d,i) => {
-      const start = Math.max(0,i-w), end = Math.min(n-1,i+w);
-      const slice = arr.slice(start,end+1);
-      return { time:d.time, avg:d3.mean(slice, e=>e.avg) };
+  // 10) Smooth X/Z ±2, Y ±5
+  function smooth(arr,w) {
+    const n=arr.length;
+    return arr.map((d,i)=>{
+      const s=Math.max(0,i-w), e=Math.min(n-1,i+w);
+      const slice = arr.slice(s,e+1);
+      return { time:d.time, avg:d3.mean(slice,e=>e.avg) };
     });
   }
   const sm = { x:{}, y:{}, z:{} };
   ['x','y','z'].forEach(k=>{
-    Object.keys(avg[k]).forEach(g => {
-      sm[k][g] = smooth(avg[k][g], k==='y' ? 10 : 2);
+    Object.keys(avg[k]).forEach(g=>{
+      sm[k][g] = smooth(avg[k][g], k==='y'?5:2);
     });
   });
 
-  // 10) Bisector
+  // 11) Bisector for interpolation
   const bisect = d3.bisector(d=>d.time).left;
 
-  // 11) Animation: translate X/Z & scale Y
+  // 12) Animate: X/Z translate & Y scale
   let timer;
   function startAnim(sel) {
     if (timer) timer.stop();
-    const key = sel || 'Overall';
+    const key = sel||'Overall';
     const sx = sm.x[key], sy = sm.y[key], sz = sm.z[key];
     const maxT = sx[sx.length-1].time;
 
     const xScale = 20,    // px per mm X
-          zScale = 30,    // px per mm Z
-          yScale = 0.05;  // scale per mm Y
+          zScale = 20,    // px per mm Z
+          yScale = 0.1;  // scale per mm Y
 
-    timer = d3.timer(elapsed => {
+    timer = d3.timer(elapsed=>{
       const t = (elapsed/1000) % maxT;
       function interp(arr) {
         const i = bisect(arr,t),
@@ -142,14 +148,14 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
               frac= (t - prev.time)/span;
         return prev.avg + (cur.avg - prev.avg)*frac;
       }
-      const dx = interp(sx) * xScale;
-      const dy = interp(sz) * zScale;
-      const sc = 1 + interp(sy) * yScale;
+      const dx = interp(sx)*xScale;
+      const dy = interp(sz)*zScale;
+      const sc = 1 + interp(sy)*yScale;
 
       head.attr('transform', `translate(${dx},${dy}) scale(${sc})`);
     });
   }
 
   startAnim(null);
-  console.log('animation ready with smoother Y-axis');
+  console.log('animation');
 })();
