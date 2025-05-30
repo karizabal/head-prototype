@@ -3,11 +3,11 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 (async function() {
   // 1) Load & type-cast
   const data = await d3.csv('data_binned_0.1.csv', d => ({
-    time_bin:   +d.time_bin,
+    time_bin: +d.time_bin,
     x_centered: +d.x_centered,
     y_centered: +d.y_centered,
     z_centered: +d.z_centered,
-    genre:       d.genre
+    genre: d.genre
   }));
 
   // 2) Genre picker UI (unchanged)
